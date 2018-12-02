@@ -54,4 +54,4 @@ Run the crawler with your configured env vars:
 - There is no depth control, so if you crawl a very large site on some specific file systems it will not be able to build the output directory nessessary to store all of its contents
 - Redirects are handled silently, which means that if it does find some content and it has to redirect to grab it, you will not be aware of that from the crawl output
 - Only `a, script, img` tags have been tested to work. Your millage will vary with other tags
-- Single threaded
+- Single threaded, so if you're crawling multiple different tag then this crawler will be slow.

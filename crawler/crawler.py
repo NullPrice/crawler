@@ -23,7 +23,9 @@ class Crawler:
 
     def _save_crawled_content(self, page):
         """
-        Takes the found content and writes it into the output directory
+        Takes found content and writes it into the output directory
+
+        :param page: page object
         """
         output_file = None
 
@@ -42,7 +44,9 @@ class Crawler:
 
     def _process_found_content(self, page):
         """
-        Ensure 'found' content has not already been found
+        Process found content and add new content to the queue
+
+        :param page: page object
         """
         found_tag_count = len(page.processed_tags)
         tag_count = 0
@@ -55,7 +59,9 @@ class Crawler:
 
     def _process_crawled_page(self, page):
         """
-        Handle adding page to processed
+        Handle adding currently processed page to the processed queue
+
+        :param page: page object
         """
         self.processed.add(page.response_url)
         if page.url.geturl() != page.response_url.geturl():

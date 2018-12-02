@@ -19,6 +19,11 @@ class Page:
         self._reference_set = {'a': 'href'}
 
     def _get_url(self, timeout=10):
+        """
+        Grab URL to parse content
+
+        :param timeout: Requests timeout, defaults to 10 seconds
+        """
         try:
             self.response = requests.get(self.url.geturl(), timeout=timeout)
         except requests.exceptions.MissingSchema:
