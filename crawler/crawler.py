@@ -2,11 +2,11 @@ import pathlib
 import os
 import uuid
 import urllib
-from .process import Process
+from .page import Page
 
 
 class Crawler:
-    def __init__(self, domain, output_dir, tags=['a']):
+    def __init__(self, domain, output_dir, tags):
         self.domain = domain
         self.tags = tags
         self.crawl_id = uuid.uuid4()
@@ -16,35 +16,51 @@ class Crawler:
         self.processed = set()
 
     def _create_output_dir(self):
+        """
+        Creates our crawl output directory
+        """
         pathlib.Path(self.output_dir).mkdir(parents=True, exist_ok=True)
 
     def _save_crawled_content(self, page):
+        """
+        Takes the found content and writes it into the output directory
+        """
         output_file = None
 
-        # If raw page content instead of script or content with a suffix
         if page.content:
-            if pathlib.Path(page.url_parse.path).suffix == '':
-                output_file = self.output_dir + "{}/index.html".format(
-                    urllib.parse.quote(page.url_parse.hostname +
-                                       page.url_parse.path))
+            if pathlib.Path(page.response_url.path).suffix == '':
+                # If raw page content instead of a suffixed specific file
+                output_file = self.output_dir + "/{}/index.html".format(
+                    page.response_url.hostname + page.response_url.path)
             else:
-                output_file = self.output_dir + "{}/{}".format(
-                    urllib.parse.quote(page.url_parse.hostname),
-                    urllib.parse.quote(page.url_parse.path))
-            # import pdb
-            # pdb.set_trace()
-            # print("Makedir: {}".format(os.path.dirname(output_file)))
+                output_file = self.output_dir + "/{}/{}".format(
+                    page.response_url.hostname, page.response_url.path)
+
             os.makedirs(os.path.dirname(output_file), exist_ok=True)
-            with open(output_file, "w", encoding="utf-8") as f:
-                f.write(str(page.content))
+            with open(output_file, "wb") as f:
+                f.write(page.response.content)
 
     def _process_found_content(self, page):
         """
         Ensure 'found' content has not already been found
         """
+        found_tag_count = len(page.processed_tags)
+        tag_count = 0
         for tag in page.processed_tags:
             if tag not in self.processed and tag not in self.queue:
                 self.queue.add(tag)
+                tag_count += 1
+        print("Added {} URLs to the queue out of {} found URLs".format(
+            tag_count, found_tag_count))
+
+    def _process_crawled_page(self, page):
+        """
+        Handle adding page to processed
+        """
+        self.processed.add(page.response_url)
+        if page.url.geturl() != page.response_url.geturl():
+            # A redirect occured so mark the original as processed too
+            self.processed.add(page.url)
 
     def start(self):
         """
@@ -53,15 +69,20 @@ class Crawler:
         self._create_output_dir()
         print("Crawl ID: {} Beginning crawl of: {}".format(
             self.crawl_id, self.domain))
+        print("Crawling tags: " + ", ".join(self.tags))
 
-        while len(self.queue) != 0:
+        while self.queue:
+            print("URLs to crawl: {}".format(len(self.queue)))
             # Grab first URL from list
-            page = Process(self.queue.pop(), self.tags)
+            page = Page(self.queue.pop(), self.tags)
             # Process the URL given
             page.process()
             # Save content to directory based on URL
             self._save_crawled_content(page)
             # Append crawled page onto processed
-            self.processed.add(page.url_parse)
+            self._process_crawled_page(page)
             # Append new tags to queue
             self._process_found_content(page)
+
+        print("Crawl ID: {} Finished!. Crawled {} URLs".format(
+            self.crawl_id, len(self.processed)))
